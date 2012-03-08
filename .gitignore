@@ -1,0 +1,14 @@
+# emacs
+*~
+
+# Python
+*.pyc
+
+# waf
+/build
+/.waf-*
+/.lock-*
+
+# build products
+/bin
+/lib
