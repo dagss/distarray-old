@@ -1,54 +1,64 @@
 #ifndef _DISTARRAY_H_
-#define _DISTARRAY_H_
+#define _DISTARRAY_HPP_
 
 #include <stdint.h>
 #include <vector>
 #include <tr1/memory>
+#include <stdexcept>
 
-#include <mpi.h>
-
-
-
-typedef struct {
-} distarray_distribution_t;
-
-typedef struct {
-} distarray_axis_t;
-
-
-distarray_distribution_t distarray_create_distribution(
-    int ndim, size_t *shape, distarray_axis_t *axes);
-
-void distarray_destroy(distarray_distribution_t *dist);
-
-distarray_axis_t distarray_create_indexed_axis();
-
+#include "distarray.h"
 
 namespace distarray {
 
 
-  typedef size_t local_t;
-  typedef size_t global_t;
 
   class AxisDistribution;
   typedef ::std::tr1::shared_ptr<AxisDistribution> AxisDistribution_p;
 
   class Distribution {
   public:
-    Distribution(std::vector<size_t> global_shape,
+    Distribution(int ndim,
+                 int *grid_shape,
+                 int *grid,
+                 size_t item_size,
+                 MPI_Comm comm);
+
+    Distribution(std::vector<int> grid_shape,
+                 std::vector<int> grid,
+                 std::vector<size_t> global_shape,
                  std::vector<AxisDistribution_p> axis_distributions,
+                 size_t item_size,
                  MPI_Comm comm);
 
     virtual ~Distribution();
+
+    void add_axis(size_t global_len,
+                  size_t local_stride,
+                  AxisDistribution_p axis);
 
     std::vector<size_t>& local_shape();
     std::vector<size_t>& global_shape();
     const MPI_Comm &comm() {
       return _comm;
     }
+    size_t ndim() {
+      return _grid_shape.size();
+    }
+    size_t item_size() {
+      return _item_size;
+    }
+    void ensure_initialized() {
+      if (_axis_distributions.size() != ndim()) {
+        throw std::logic_error("add_axis called too few times");
+      }
+    }
   private:
-    std::vector<size_t> _local_shape, _global_shape;
+    void _initialize();
+
+    std::vector<int> _grid_shape, _grid;
+    std::vector<size_t> _local_shape, _global_shape, _local_strides;
     std::vector<AxisDistribution_p> _axis_distributions;
+    size_t _item_size;
     MPI_Comm _comm;
   };
   
@@ -74,7 +84,7 @@ namespace distarray {
   class Copier {
   public:
     virtual ~Copier() {};
-    virtual void copy(double *target, double *source) = 0;
+    virtual void copy(void *target, void *source) = 0;
   };
 
 
@@ -85,7 +95,7 @@ namespace distarray {
   /* Particular AxisDistributions */
   class DistributeByIndex : public AxisDistribution {
   public:
-    DistributeByIndex(size_t n, global_t *indices) :
+    DistributeByIndex(size_t n, distarray_global_t *indices) :
       _n(n), _indices(indices) {}
 
     virtual size_t get_local_length(size_t global_length, MPI_Comm comm) {
@@ -93,11 +103,9 @@ namespace distarray {
     }
   private:
     size_t _n;
-    global_t *_indices;
+    distarray_global_t *_indices;
   };
 
 }
 
-
-
-#endif // _DISTARRAY_H_
+#endif /* _DISTARRAY_HPP_ */

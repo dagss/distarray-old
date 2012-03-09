@@ -56,6 +56,12 @@ def build(bld):
         use='',
         features='cxxshlib cxx')
 
+    bld(source=['distarray/wrapper.pyx'],
+        includes=['src'],
+        target='wrapper',
+        use='distarray MPI MPI4PY NUMPY',
+        features='cxx cxxshlib pyext')
+
     bld(source=['examples/distarray_demo.cpp'],
         includes=['src'],
         target='distarray_demo',

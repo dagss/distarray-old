@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
   mpi_check(MPI_Comm_rank(comm, &my_rank));
   mpi_check(MPI_Comm_size(comm, &commsize));
 
-  global_t indices_a[3], indices_b[3];
+  distarray_global_t indices_a[3], indices_b[3];
   double a[3];
   double b[3] = {0, 0, 0};
 
@@ -50,13 +50,21 @@ int main(int argc, char **argv) {
     a[1] = 4;
     a[2] = 5;
   }
-  std::vector<global_t> shape;
+  std::vector<distarray_global_t> shape;
   std::vector<AxisDistribution_p> axes_a, axes_b;
+
+  std::vector<int> grid;
+  grid.push_back(0);
+  grid.push_back(1);
+
+  std::vector<int> grid_shape;
+  grid.push_back(2);
+
   shape.push_back(6);
   axes_a.push_back(AxisDistribution_p(new DistributeByIndex(3, indices_a)));
   axes_b.push_back(AxisDistribution_p(new DistributeByIndex(3, indices_b)));
-  Distribution dist_a(shape, axes_a, comm);
-  Distribution dist_b(shape, axes_b, comm);
+  Distribution dist_a(grid_shape, grid, shape, axes_a, sizeof(double), comm);
+  Distribution dist_b(grid_shape, grid, shape, axes_b, sizeof(double), comm);
 
   std::tr1::shared_ptr<Copier> copier(create_copier(&dist_a, &dist_b));
 
